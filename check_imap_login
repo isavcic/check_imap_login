@@ -15,70 +15,70 @@ import sys, os, imaplib, getopt
 from time import time
 
 def usage():
-        print sys.argv[0] + " -u <user> -p <password> -H <host> [-P <port>] [-s] -w <warning threshold (sec)> -c <critical threshold (sec)>\n -s is for using IMAPS"
+	print sys.argv[0] + " -u <user> -p <password> -H <host> [-P <port>] [-s] -w <warning threshold (sec)> -c <critical threshold (sec)>\n -s is for using IMAPS"
 
 def main():
-        try:
-                opts, args = getopt.getopt(sys.argv[1:], "u:p:sH:P:w:c:")
-        except getopt.GetoptError:
-                usage()
-                return 3
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "u:p:sH:P:w:c:")
+	except getopt.GetoptError:
+		usage()
+		return 3
 
-        user = host = password = port = use_ssl = warning = critical = None
+	user = host = port = password = use_ssl = warning = critical = None
 
-        for o, a in opts:
-                if o == "-u":
-                        user = a
-                elif o == "-p":
-                        password = a
-                elif o == "-s":
-                        use_ssl = True
-                elif o == "-H":
-                        host = a
-                elif o == "-P":
-                        port = a
-                elif o == "-w":
-                        warning = float(a)
-                elif o == "-c":
-                        critical = float(a)
+	for o, a in opts:
+		if o == "-u":
+			user = a
+		elif o == "-p":
+			password = a
+		elif o == "-s":
+			use_ssl = True
+		elif o == "-H":
+			host = a
+		elif o == "-P":
+			port = a
+		elif o == "-w":
+			warning = float(a)
+		elif o == "-c":
+			critical = float(a)
 
-        if user == None or password == None or host == None or warning == None or critical == None:
-                usage()
-                return 1
+	if user == None or password == None or host == None or warning == None or critical == None:
+		usage()
+		return 1
 
-        if port == None:
-                port = 143
+	if port == None:
+		port = 143
 
-        if use_ssl:
-                M = imaplib.IMAP4_SSL(host=host, port=port)
-        else:
-                M = imaplib.IMAP4(host, port=port)
+	if use_ssl:
+		M = imaplib.IMAP4_SSL(host=host, port=port)
+	else:
+		M = imaplib.IMAP4(host, port=port)
 
-        timestamp = time()
+	timestamp = time()
+	
+	try:	
+		M.login(user, password)
+	except Exception, e:
+		print "CRITICAL IMAP Login Failed: %s" % e
+		return 2
 
-        try:
-                M.login(user, password)
-        except Exception, e:
-                print "CRITICAL IMAP Login Failed: %s" % e
-                return 2
+	M.logout()
 
-        M.logout()
+	timestamp = time() - timestamp
 
-        timestamp = time() - timestamp
+	if timestamp < warning:
+		status = "OK"
+		exitcode = 0
+	if timestamp >= warning:
+		status = "WARNING"
+		exitcode = 1
+	if timestamp >= critical:
+		status = "CRITICAL"
+		exitcode = 2
 
-        if timestamp < warning:
-                status = "OK"
-                exitcode = 0
-        if timestamp >= warning:
-                status = "WARNING"
-                exitcode = 1
-        if timestamp >= critical:
-                status = "CRITICAL"
-                exitcode = 2
+	print '%s IMAP Login | response_time=%.3fs;%.3f;%.3f' % (status, timestamp, warning, critical)
 
-        print '%s IMAP Login | response_time=%.3fs;%.3f;%.3f' % (status, timestamp, warning, critical)
-
-        return exitcode
+	return exitcode
 
 if __name__ == "__main__":
-        sys.exit(main())
+	sys.exit(main())
