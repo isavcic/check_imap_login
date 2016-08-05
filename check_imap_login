@@ -15,16 +15,16 @@ import sys, os, imaplib, getopt
 from time import time
 
 def usage():
-	print sys.argv[0] + " -u <user> -p <password> -H <host> [-s] -w <warning threshold (sec)> -c <critical threshold (sec)>\n -s is for using IMAPS"
+	print sys.argv[0] + " -u <user> -p <password> -H <host> [-P <port>] [-s] -w <warning threshold (sec)> -c <critical threshold (sec)>\n -s is for using IMAPS"
 
 def main():
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "u:p:sH:w:c:")
+		opts, args = getopt.getopt(sys.argv[1:], "u:p:sH:P:w:c:")
 	except getopt.GetoptError:
 		usage()
 		return 3
-    
-	user = host = password = use_ssl = warning = critical = None
+
+	user = host = port = password = use_ssl = warning = critical = None
 
 	for o, a in opts:
 		if o == "-u":
@@ -35,6 +35,8 @@ def main():
 			use_ssl = True
 		elif o == "-H":
 			host = a
+		elif o == "-P":
+			port = a
 		elif o == "-w":
 			warning = float(a)
 		elif o == "-c":
@@ -43,12 +45,15 @@ def main():
 	if user == None or password == None or host == None or warning == None or critical == None:
 		usage()
 		return 1
-    
+
+	if port == None:
+		port = 143
+
 	if use_ssl:
-		M = imaplib.IMAP4_SSL(host=host)
+		M = imaplib.IMAP4_SSL(host=host, port=port)
 	else:
-		M = imaplib.IMAP4(host)
-    
+		M = imaplib.IMAP4(host, port=port)
+
 	timestamp = time()
 	
 	try:	
